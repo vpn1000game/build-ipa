@@ -1,4 +1,4 @@
-Name: NxNative - Generic IPA Builder
+name: NxNative - Generic IPA Builder
 
 on:
   workflow_dispatch:
