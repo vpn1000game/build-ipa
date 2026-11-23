@@ -436,6 +436,8 @@ jobs:
           python "$CHAIN_SCRIPT" --header
 
       - name: Build unsigned IPA
+        env: 
+          ALLOW_OTHER_METAL: "1"
         shell: bash
         run: |
           set -euo pipefail
