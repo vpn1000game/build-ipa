@@ -448,6 +448,38 @@ jobs:
           GAME_DIR="$RUNNER_TEMP/GameFiles"
           OUTPUT="$RUNNER_TEMP/NxNative.ipa"
 
+          python - <<'PY'
+          from pathlib import Path
+
+          bad_tokens = (
+              "reactiveMaskTextureUsage",
+              "colorContentOffsetX",
+              "colorContentOffsetY",
+              "depthContentOffsetX",
+              "depthContentOffsetY",
+              "motionContentOffsetX",
+              "motionContentOffsetY",
+              "reactiveMaskContentOffsetX",
+              "reactiveMaskContentOffsetY",
+              "outputOffsetX",
+              "outputOffsetY",
+          )
+
+          for path in Path(".").rglob("nvn_mtl.m"):
+              lines = path.read_text(errors="replace").splitlines(keepends=True)
+              changed = False
+              new_lines = []
+              for line in lines:
+                  if any(tok in line for tok in bad_tokens) and not line.lstrip().startswith("//"):
+                      new_lines.append("// " + line)
+                      changed = True
+                  else:
+                      new_lines.append(line)
+              if changed:
+                  path.write_text("".join(new_lines))
+                  print(f"Patched {path}")
+          PY
+
           python scripts/build_ipa_from_nsp.py \
             "$GAME_DIR" \
             -k "$WORK/prod.keys" \
