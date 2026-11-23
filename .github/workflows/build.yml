@@ -59,7 +59,7 @@ jobs:
           python -m pip install \
             lz4 capstone fonttools zbic zstd backports.zstd gdown
           /Library/Frameworks/Python.framework/Versions/3.13/bin/python3 -m pip install \
-            lz4 capstone fonttools zstd backports.zstd gdown
+            lz4 capstone fonttools zbic zstd backports.zstd gdown
 
       - name: Download game files and keys
         env:
@@ -477,4 +477,55 @@ jobs:
                       new_lines.append(f"{indent}u = sc.reactiveTextureUsage;\n")
                       changed = True
                   elif any(tok in line for tok in bad_tokens) and not stripped.startswith("//"):
-                  
+                      new_lines.append("// " + line)
+                      changed = True
+                  else:
+                      new_lines.append(line)
+              if changed:
+                  path.write_text("".join(new_lines))
+                  print(f"Patched {path}")
+          PY
+
+          python scripts/build_ipa_from_nsp.py \
+            "$GAME_DIR" \
+            -k "$WORK/prod.keys" \
+            -o "$OUTPUT" \
+            --allow-other-metal
+
+          if [[ ! -s "$OUTPUT" ]]; then
+            echo "::error::IPA build did not produce an output file."
+            exit 1
+          fi
+
+          echo "IPA successfully created: $OUTPUT"
+          ls -lh "$OUTPUT"
+
+      - name: Upload IPA
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NxNative-IPA-${{ inputs.device == 'iPhone 15 or older (BC fallback)' && 'BC-Fallback' || 'Standard' }}
+          path: ${{ runner.temp }}/NxNative.ipa
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload build logs if available
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NxNative-Build-Logs
+          path: |
+            ${{ runner.temp }}/GameFiles/*_build/logs/
+            ${{ runner.temp }}/GameFiles/*_survey/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Clean up downloaded files and keys
+        if: always()
+        shell: bash
+        run: |
+          rm -rf \
+            "$RUNNER_TEMP/nxnative" \
+            "$RUNNER_TEMP/GameFiles"
+          f"Added direct package: {
+
