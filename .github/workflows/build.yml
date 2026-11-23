@@ -58,6 +58,8 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install \
             lz4 capstone fonttools zstd backports.zstd gdown
+          /Library/Frameworks/Python.framework/Versions/3.13/bin/python3 -m pip install \
+            lz4 capstone fonttools zstd backports.zstd gdown
 
       - name: Download game files and keys
         env:
