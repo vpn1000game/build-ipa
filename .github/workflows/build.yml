@@ -59,7 +59,7 @@ jobs:
           python -m pip install \
             lz4 capstone fonttools zbic zstd backports.zstd gdown
           /Library/Frameworks/Python.framework/Versions/3.13/bin/python3 -m pip install \
-            lz4 capstone fonttools zbic zstd backports.zstd gdown
+            lz4 capstone fonttools zstd backports.zstd gdown
 
       - name: Download game files and keys
         env:
@@ -484,6 +484,20 @@ jobs:
               if changed:
                   path.write_text("".join(new_lines))
                   print(f"Patched {path}")
+
+          for path in Path(".").rglob("DmGamepad.m"):
+              lines = path.read_text(errors="replace").splitlines(keepends=True)
+              changed = False
+              new_lines = []
+              for line in lines:
+                  if "deviceMotionBody" in line and not line.lstrip().startswith("//"):
+                      new_lines.append("// " + line)
+                      changed = True
+                  else:
+                      new_lines.append(line)
+              if changed:
+                  path.write_text("".join(new_lines))
+                  print(f"Patched {path}")
           PY
 
           python scripts/build_ipa_from_nsp.py \
@@ -524,8 +538,5 @@ jobs:
         if: always()
         shell: bash
         run: |
-          rm -rf \
-            "$RUNNER_TEMP/nxnative" \
-            "$RUNNER_TEMP/GameFiles"
-          f"Added direct package: {
-
+          rm -rf "$RUNNER_TEMP/nxnative" "$RUNNER_TEMP/GameFiles"
+          
