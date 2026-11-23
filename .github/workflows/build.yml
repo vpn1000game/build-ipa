@@ -448,7 +448,8 @@ jobs:
           python scripts/build_ipa_from_nsp.py \
             "$GAME_DIR" \
             -k "$WORK/prod.keys" \
-            -o "$OUTPUT"
+            -o "$OUTPUT" \
+            --allow-other-metal
 
           if [[ ! -s "$OUTPUT" ]]; then
             echo "::error::IPA build did not produce an output file."
