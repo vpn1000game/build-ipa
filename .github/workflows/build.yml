@@ -476,5 +476,5 @@ jobs:
                       indent = line[: len(line) - len(stripped)]
                       new_lines.append(f"{indent}u = sc.reactiveTextureUsage;\n")
                       changed = True
-                  elif any(tok in line for tok in bad_tokens)
+                  elif any(tok in line for tok in bad_tokens) and not stripped.startswith("//"):
                   
