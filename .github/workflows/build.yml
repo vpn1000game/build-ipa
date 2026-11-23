@@ -1,4 +1,4 @@
-name: NxNative - Generic IPA Builder
+Name: NxNative - Generic IPA Builder
 
 on:
   workflow_dispatch:
@@ -83,6 +83,8 @@ jobs:
               exit 1
             fi
 
+            url="$(echo "$url" | tr -d '[:space:]')"
+
             file_id="$(python - "$url" <<'PY'
           import re
           import sys
@@ -108,17 +110,18 @@ jobs:
           ):
               file_id = url
 
-          if not file_id:
-              raise SystemExit(
-                  "Could not extract a Google Drive file ID."
-              )
-
-          print(file_id)
+          print(file_id or "")
           PY
           )"
 
             echo "Downloading $(basename "$output")..."
-            gdown "$file_id" -O "$output"
+            if [[ -n "$file_id" ]]; then
+              gdown "$file_id" -O "$output"
+            else
+              curl -fL --retry 3 --retry-delay 2 \
+                -A "Mozilla/5.0" \
+                "$url" -o "$output"
+            fi
 
             if [[ ! -s "$output" ]]; then
               echo "::error::Downloaded file is empty."
@@ -486,3 +489,4 @@ jobs:
           rm -rf \
             "$RUNNER_TEMP/nxnative" \
             "$RUNNER_TEMP/GameFiles"
+
