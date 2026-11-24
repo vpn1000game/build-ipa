@@ -458,9 +458,12 @@ jobs:
           GAME_DIR="$RUNNER_TEMP/GameFiles"
           OUTPUT="$RUNNER_TEMP/NxNative.ipa"
 
-          python - "$WORK" <<'PY'
+          python - "$WORK" "$GAME_DIR" <<'PY'
           import sys
           from pathlib import Path
+
+          work_dir = Path(sys.argv[1])
+          game_dir = Path(sys.argv[2])
 
           bad_tokens = (
               "reactiveMaskTextureUsage",
@@ -511,7 +514,7 @@ jobs:
                   print(f"Patched {path}")
 
           # Inject Thai RomFS mod hook right before app build step in build_ipa_from_nsp.py
-          mod_root = Path(sys.argv[1]) / "mod_extracted"
+          mod_root = work_dir / "mod_extracted"
           if mod_root.exists():
               romfs_dirs = [p for p in mod_root.rglob("romfs") if p.is_dir()]
               if romfs_dirs:
@@ -529,7 +532,7 @@ jobs:
                               hook = (
                                   f"{indent}import shutil as _shutil\n"
                                   f"{indent}from pathlib import Path as _Path\n"
-                                  f"{indent}for _ext in _Path('{GAME_DIR}').glob('*_build/extract/v*'):\n"
+                                  f"{indent}for _ext in _Path('{game_dir}').glob('*_build/extract/v*'):\n"
                                   f"{indent}    if _ext.is_dir():\n"
                                   f"{indent}        _shutil.copytree('{mod_romfs}', _ext, dirs_exist_ok=True)\n"
                                   f"{indent}        print(f'Injected Thai RomFS mod into {{_ext}}')\n"
@@ -581,4 +584,4 @@ jobs:
         shell: bash
         run: |
           rm -rf "$RUNNER_TEMP/nxnative" "$RUNNER_TEMP/GameFiles"
-
+          
