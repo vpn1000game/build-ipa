@@ -59,14 +59,15 @@ jobs:
           python -m pip install \
             lz4 capstone fonttools zbic zstd backports.zstd gdown
           /Library/Frameworks/Python.framework/Versions/3.13/bin/python3 -m pip install \
-            lz4 capstone fonttools zstd backports.zstd gdown
+            lz4 capstone fonttools zbic zstd backports.zstd gdown
 
-      - name: Download game files and keys
+      - name: Download game files, mod, and keys
         env:
           GAME_URL: ${{ secrets.Game_URL }}
           UPDATE_URL: ${{ secrets.Update_URL }}
           DLC_URL: ${{ secrets.DLC_URL }}
           KEYS_URL: ${{ secrets.Keys_URL }}
+          MOD_URL: ${{ secrets.MOD_URL }}
         shell: bash
         run: |
           set -euo pipefail
@@ -144,6 +145,15 @@ jobs:
             download_file "$DLC_URL" "$WORK/dlc.download"
           else
             echo "No DLC_URL configured; continuing without DLC."
+          fi
+
+          if [[ -n "${MOD_URL:-}" ]]; then
+            download_file "$MOD_URL" "$WORK/mod.zip"
+            mkdir -p "$WORK/mod_extracted"
+            unar -o "$WORK/mod_extracted" "$WORK/mod.zip"
+            echo "Mod extracted successfully."
+          else
+            echo "No MOD_URL configured; building vanilla game."
           fi
 
           chmod 600 "$WORK/prod.keys"
@@ -448,7 +458,8 @@ jobs:
           GAME_DIR="$RUNNER_TEMP/GameFiles"
           OUTPUT="$RUNNER_TEMP/NxNative.ipa"
 
-          python - <<'PY'
+          python - "$WORK" <<'PY'
+          import sys
           from pathlib import Path
 
           bad_tokens = (
@@ -498,6 +509,37 @@ jobs:
               if changed:
                   path.write_text("".join(new_lines))
                   print(f"Patched {path}")
+
+          # Inject Thai RomFS mod hook right before app build step in build_ipa_from_nsp.py
+          mod_root = Path(sys.argv[1]) / "mod_extracted"
+          if mod_root.exists():
+              romfs_dirs = [p for p in mod_root.rglob("romfs") if p.is_dir()]
+              if romfs_dirs:
+                  mod_romfs = romfs_dirs[0]
+                  build_script = Path("scripts/build_ipa_from_nsp.py")
+                  code = build_script.read_text(errors="replace")
+                  target = "building the IPA"
+                  if target in code:
+                      lines = code.splitlines(keepends=True)
+                      patched_lines = []
+                      injected = False
+                      for line in lines:
+                          if target in line and not injected:
+                              indent = line[: len(line) - len(line.lstrip())]
+                              hook = (
+                                  f"{indent}import shutil as _shutil\n"
+                                  f"{indent}from pathlib import Path as _Path\n"
+                                  f"{indent}for _ext in _Path('{GAME_DIR}').glob('*_build/extract/v*'):\n"
+                                  f"{indent}    if _ext.is_dir():\n"
+                                  f"{indent}        _shutil.copytree('{mod_romfs}', _ext, dirs_exist_ok=True)\n"
+                                  f"{indent}        print(f'Injected Thai RomFS mod into {{_ext}}')\n"
+                              )
+                              patched_lines.append(hook)
+                              injected = True
+                          patched_lines.append(line)
+                      if injected:
+                          build_script.write_text("".join(patched_lines))
+                          print(f"Hooked Thai mod from {mod_romfs} into {build_script}")
           PY
 
           python scripts/build_ipa_from_nsp.py \
@@ -518,7 +560,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: NxNative-IPA-${{ inputs.device == 'iPhone 15 or older (BC fallback)' && 'BC-Fallback' || 'Standard' }}
+          name: NxNative-IPA-Thai-${{ inputs.device == 'iPhone 15 or older (BC fallback)' && 'BC-Fallback' || 'Standard' }}
           path: ${{ runner.temp }}/NxNative.ipa
           if-no-files-found: error
           retention-days: 7
@@ -539,4 +581,4 @@ jobs:
         shell: bash
         run: |
           rm -rf "$RUNNER_TEMP/nxnative" "$RUNNER_TEMP/GameFiles"
-          
+
