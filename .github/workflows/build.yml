@@ -532,8 +532,11 @@ jobs:
                               hook = (
                                   f"{indent}import shutil as _shutil\n"
                                   f"{indent}from pathlib import Path as _Path\n"
-                                  f"{indent}for _ext in _Path('{game_dir}').glob('*_build/extract/v*'):\n"
-                                  f"{indent}    if _ext.is_dir():\n"
+                                  f"{indent}_targets = list(_Path('{game_dir}').rglob('romfs')) + list(_Path('{game_dir}').glob('*_build/extract/v*'))\n"
+                                  f"{indent}_seen = set()\n"
+                                  f"{indent}for _ext in _targets:\n"
+                                  f"{indent}    if _ext.is_dir() and str(_ext) not in _seen:\n"
+                                  f"{indent}        _seen.add(str(_ext))\n"
                                   f"{indent}        _shutil.copytree('{mod_romfs}', _ext, dirs_exist_ok=True)\n"
                                   f"{indent}        print(f'Injected Thai RomFS mod into {{_ext}}')\n"
                               )
