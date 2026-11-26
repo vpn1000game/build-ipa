@@ -304,22 +304,17 @@ jobs:
                   print(f"Patched {path}")
           PY
 
-          KEY_ARGS=()
+          CMD=(python3 scripts/build_ipa_from_nsp.py "$GAME_DIR" -o "$OUTPUT" --allow-other-metal)
+
           if [[ -s "$WORK/prod.keys" ]]; then
-            KEY_ARGS=(-k "$WORK/prod.keys")
+            CMD+=(-k "$WORK/prod.keys")
           fi
 
-          PROFILE_ARGS=()
           if [[ -n "${PROFILE_ID:-}" ]]; then
-            PROFILE_ARGS=(--profile "$PROFILE_ID")
+            CMD+=(--profile "$PROFILE_ID")
           fi
 
-          python3 scripts/build_ipa_from_nsp.py \
-            "$GAME_DIR" \
-            "${KEY_ARGS[@]}" \
-            "${PROFILE_ARGS[@]}" \
-            -o "$OUTPUT" \
-            --allow-other-metal
+          "${CMD[@]}"
 
           if [[ ! -s "$OUTPUT" ]]; then
             echo "::error::IPA build did not produce an output file."
